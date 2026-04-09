@@ -1,6 +1,6 @@
 import plotly
 import plotly.graph_objects as go
-import pyomo as pyo
+import pyomo.environ as pyo
 
 
 def highlight_congested_lines(model, power_system, figure, tolerance=1e-6):
