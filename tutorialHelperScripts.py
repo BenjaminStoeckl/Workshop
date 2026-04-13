@@ -4,7 +4,8 @@ import pyomo.environ as pyo
 import npap
 import networkx as nx
 import pandas as pd
-from sklearn.cluster import KMeans
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.neighbors import kneighbors_graph
 
 
 
@@ -74,10 +75,10 @@ def store_dual_in_npap_graph(model: pyo.Model, power_system, constraint_name: st
     return power_system
 
 
-def get_clustered_bus_mapping(ps: npap.PartitionAggregatorManager, attribute_name: str, n_clusters: int) -> dict:
+def get_clustering_from_node_attributes(ps: npap.PartitionAggregatorManager, attribute_name: str, n_clusters: int, adjacent_nodes_clustering: bool = False) -> npap.PartitionResult:
     """
-    Performs K-Means clustering on a specific node attribute and returns 
-    a mapping dictionary of {cluster_id: [list_of_nodes]}.
+    Performs Agglomerative clustering on a specific node attribute and returns 
+    a npap.PartitionResult conatining a mapping dict: {cluster_id: [list_of_nodes]}.
     """
     # 1. Extract the specific attribute from all nodes into a dictionary
     node_attr_dict = nx.get_node_attributes(ps._current_graph, attribute_name)
@@ -89,15 +90,22 @@ def get_clustered_bus_mapping(ps: npap.PartitionAggregatorManager, attribute_nam
     # Orient='index' ensures the node IDs become the index of the DataFrame
     df = pd.DataFrame.from_dict(node_attr_dict, orient='index', columns=[attribute_name])
     
-    # Drop any nodes that might be missing this attribute (NaNs crash KMeans)
-    df = df.dropna()
+    # 3. Perform Agglomerative Clustering
+    model = AgglomerativeClustering(
+      n_clusters=n_clusters,
+      connectivity=(nx.adjacency_matrix(ps._current_graph) if adjacent_nodes_clustering else None),
+      linkage='ward',
+      
+    )
+    df['cluster_id'] = model.fit_predict(df[[attribute_name]])
 
-    # 3. Perform K-Means Clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    df['cluster_id'] = kmeans.fit_predict(df[[attribute_name]])
+    # 5. Create the npap.PartitionResult object containing mapping dictionary
+    partition_result = npap.PartitionResult(
+      mapping = bus_mapping,
+      original_graph_hash = ps._current_graph_hash,
+      strategy_name = attribute_name,
+      strategy_metadata = {},
+      n_clusters = n_clusters
+    )
 
-    # 4. Generate the Mapping Dictionary
-    # df.groupby('cluster_id').groups returns a dict mapping cluster IDs to their index values (Node IDs)
-    bus_mapping = {int(cluster): list(nodes) for cluster, nodes in df.groupby('cluster_id').groups.items()}
-    
-    return bus_mapping
+    return partition_result
