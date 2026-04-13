@@ -99,6 +99,10 @@ def get_clustering_from_node_attributes(ps: npap.PartitionAggregatorManager, att
     )
     df['cluster_id'] = model.fit_predict(df[[attribute_name]])
 
+    # 4. Generate the Mapping Dictionary
+    # df.groupby('cluster_id').groups returns a dict mapping cluster IDs to their index values (Node IDs)
+    bus_mapping = {int(cluster): list(nodes) for cluster, nodes in df.groupby('cluster_id').groups.items()}
+
     # 5. Create the npap.PartitionResult object containing mapping dictionary
     partition_result = npap.PartitionResult(
       mapping = bus_mapping,
