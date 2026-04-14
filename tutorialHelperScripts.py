@@ -103,4 +103,13 @@ def get_clustering_from_node_attributes(ps: npap.PartitionAggregatorManager, att
     # df.groupby('cluster_id').groups returns a dict mapping cluster IDs to their index values (Node IDs)
     bus_mapping = {int(cluster): list(nodes) for cluster, nodes in df.groupby('cluster_id').groups.items()}
 
-    return bus_mapping
+    # 5. Create the npap.PartitionResult object containing mapping dictionary
+    partition_result = npap.PartitionResult(
+      mapping = bus_mapping,
+      original_graph_hash = ps._current_graph_hash,
+      strategy_name = attribute_name,
+      strategy_metadata = {},
+      n_clusters = n_clusters
+    )
+
+    return partition_result
