@@ -75,7 +75,7 @@ def store_dual_in_npap_graph(model: pyo.Model, power_system, constraint_name: st
     return power_system
 
 
-def get_clustering_from_node_attributes(ps: npap.PartitionAggregatorManager, attribute_name: str, n_clusters: int, adjacent_nodes_clustering: bool = False) -> dict[int list[Any]]:
+def get_clustering_from_node_attributes(ps: npap.PartitionAggregatorManager, attribute_name: str, n_clusters: int, adjacent_nodes_clustering: bool = False):
     """
     Performs Agglomerative clustering on a specific node attribute and returns 
     a npap.PartitionResult conatining a mapping dict: {cluster_id: [list_of_nodes]}.
